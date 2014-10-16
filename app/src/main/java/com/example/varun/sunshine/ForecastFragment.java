@@ -5,9 +5,11 @@ package com.example.varun.sunshine;
  */
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -33,9 +35,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -48,6 +48,14 @@ public class ForecastFragment extends Fragment {
 
     private ArrayAdapter<String> mForecastAdapter;
     private int numDays = 7;
+
+    private void updateWeather() {
+        SharedPreferences spref = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String location = spref.getString(getString(R.string.pref_location_key),
+                getString(R.string.pref_location_default));
+        FetchWeatherTask weatherTask = new FetchWeatherTask();
+        weatherTask.execute(location);
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -64,8 +72,7 @@ public class ForecastFragment extends Fragment {
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_refresh) {
-            FetchWeatherTask weatherTask = new FetchWeatherTask();
-            weatherTask.execute("94043");
+            updateWeather();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -80,32 +87,12 @@ public class ForecastFragment extends Fragment {
                 R.id.listview_forecast
         );
 
-        String[] forecastArray = {
-                "Today - Sunny 23/19",
-                "Tomorrow - Cloudy 22/11",
-                "Tuesday - Rainy 22/11",
-                "Wednesday - Haily 22/11",
-                "Thursday - Stormy 22/11",
-                "Friday - Chilly 22/11",
-                "Saturday - Muddy 22/11",
-                "Next Sunday - Cloudy 22/11",
-                "Next Monday - Cloudy 22/11",
-                "Next Tuesday - Rainy 22/11",
-                "Next Wednesday - Haily 22/11",
-                "Next Thursday - Stormy 22/11",
-                "Next Friday - Chilly 22/11",
-                "Next Saturday - Muddy 22/11",
-
-        };
-        List<String> weekForecast = new ArrayList<String>(
-                Arrays.asList(forecastArray)
-        );
 
         mForecastAdapter = new ArrayAdapter<String>(
                 getActivity(),
                 R.layout.list_item_forecast,
                 R.id.list_item_forecast_textview,
-                weekForecast
+                new ArrayList<String>()
         );
 
         listView.setAdapter(mForecastAdapter);
@@ -113,7 +100,7 @@ public class ForecastFragment extends Fragment {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
                 String forecast = mForecastAdapter.getItem(position);
-                //Toast.makeText(getActivity(), forecast, Toast.LENGTH_SHORT).show();
+                Toast.makeText(getActivity(), forecast, Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(getActivity(), DetailActivity.class)
                         .putExtra(Intent.EXTRA_TEXT, forecast);
                 startActivity(intent);
@@ -121,6 +108,12 @@ public class ForecastFragment extends Fragment {
         });
 
         return rootView;
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        updateWeather();
     }
 
     public class FetchWeatherTask extends AsyncTask<String, String, String[]> {
